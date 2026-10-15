@@ -325,6 +325,7 @@ with english_tab:
 
     st.markdown("**English (Gregorian) Date**")
     with st.container(key="en_date_row"):
+        # The two icon columns get a fixed width from LAYOUT_CSS.
         col_day, col_month, col_year, col_today, col_pick = st.columns(
             [1.1, 1.4, 1.5, 0.55, 0.55], vertical_alignment="bottom"
         )
@@ -390,22 +391,25 @@ with english_tab:
 with odia_tab:
     defaults = today_defaults()
 
-    col_year_type, col_date_type, col_od_today = st.columns(
-        [2, 2, 0.55], vertical_alignment="bottom"
-    )
-    year_type = col_year_type.radio(
-        "Year given as", ["Utkalabda", "Anka"], horizontal=True
-    )
-    date_type = col_date_type.radio(
-        "Date given as", ["Solar", "Lunar"], horizontal=True
-    )
-    col_od_today.button(
-        ":material/refresh:",
-        on_click=reset_od_to_today,
-        key="btn_od_today",
-        help="Today",
-        width="stretch",
-    )
+    # Keyed container: LAYOUT_CSS keeps this row on one line on phones and
+    # gives the refresh column a fixed width.
+    with st.container(key="od_head_row"):
+        col_year_type, col_date_type, col_od_today = st.columns(
+            [2, 2, 0.55], vertical_alignment="bottom"
+        )
+        year_type = col_year_type.radio(
+            "Year given as", ["Utkalabda", "Anka"], horizontal=True
+        )
+        date_type = col_date_type.radio(
+            "Date given as", ["Solar", "Lunar"], horizontal=True
+        )
+        col_od_today.button(
+            ":material/refresh:",
+            on_click=reset_od_to_today,
+            key="btn_od_today",
+            help="Today",
+            width="stretch",
+        )
 
     utkalabda: Optional[int] = None
     anka: Optional[int] = None

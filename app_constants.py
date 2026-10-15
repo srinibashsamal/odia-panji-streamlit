@@ -44,18 +44,59 @@ JATAKA_TITLES: str = (
     "Prabala Pratapi Maharajadhiraja"
 )
 
+# Width of the square icon columns (refresh button and calendar picker).
+ICON_COL_WIDTH: str = "2.6rem"
+
+_CALENDAR_SVG: str = (
+    "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' "
+    "viewBox='0 -960 960 960'><path d='M200-80q-33 0-56.5-23.5T120-160v-560q0-33 "
+    "23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v560q0 "
+    "33-23.5 56.5T760-80H200Zm0-80h560v-400H200v400Zm0-480h560v-80H200v80Zm0 0v-80 "
+    "80Zm280 240q-17 0-28.5-11.5T440-440q0-17 11.5-28.5T480-480q17 0 28.5 11.5T520-440q0 "
+    "17-11.5 28.5T480-400Zm-160 0q-17 0-28.5-11.5T280-440q0-17 11.5-28.5T320-480q17 0 "
+    "28.5 11.5T360-440q0 17-11.5 28.5T320-400Zm320 0q-17 0-28.5-11.5T600-440q0-17 "
+    "11.5-28.5T640-480q17 0 28.5 11.5T680-440q0 17-11.5 28.5T640-400ZM480-240q-17 "
+    "0-28.5-11.5T440-280q0-17 11.5-28.5T480-320q17 0 28.5 11.5T520-280q0 17-11.5 "
+    "28.5T480-240Zm-160 0q-17 0-28.5-11.5T280-280q0-17 11.5-28.5T320-320q17 0 28.5 "
+    "11.5T360-280q0 17-11.5 28.5T320-240Zm320 0q-17 0-28.5-11.5T600-280q0-17 "
+    "11.5-28.5T640-320q17 0 28.5 11.5T680-280q0 17-11.5 28.5T640-240Z'/></svg>\")"
+)
+
 LAYOUT_CSS = """
 <style>
 .st-key-en_date_row [data-testid="stHorizontalBlock"],
+.st-key-od_head_row [data-testid="stHorizontalBlock"],
 [class*="st-key-metrics_"] [data-testid="stHorizontalBlock"] {
     flex-wrap: nowrap !important;
     gap: 0.5rem !important;
 }
 .st-key-en_date_row [data-testid="stColumn"],
 .st-key-en_date_row [data-testid="column"],
+.st-key-od_head_row [data-testid="stColumn"],
+.st-key-od_head_row [data-testid="column"],
 [class*="st-key-metrics_"] [data-testid="stColumn"],
 [class*="st-key-metrics_"] [data-testid="column"] {
     min-width: 0 !important;
+}
+
+/* Icon columns: fixed square width on every screen size, so the icons
+   never get squeezed on phones. The other columns share the rest. */
+.st-key-en_date_row [data-testid="stColumn"]:nth-child(n+4),
+.st-key-en_date_row [data-testid="column"]:nth-child(n+4),
+.st-key-od_head_row [data-testid="stColumn"]:last-child,
+.st-key-od_head_row [data-testid="column"]:last-child {
+    flex: 0 0 ICON_W !important;
+    width: ICON_W !important;
+    max-width: ICON_W !important;
+}
+
+/* Refresh buttons: no inner padding, so the icon stays centred. */
+.st-key-btn_today button,
+.st-key-btn_od_today button {
+    padding: 0 !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    justify-content: center !important;
 }
 
 /* Make every wrapper inside a metric column respect the column width,
@@ -83,34 +124,6 @@ LAYOUT_CSS = """
     line-height: 1.2;
 }
 
-/* Refresh buttons: hide the font-icon (it gets clipped in narrow columns)
-   and draw the icon with a mask, like the calendar button. */
-.st-key-btn_today button,
-.st-key-btn_od_today button {
-    position: relative;
-    padding: 0 !important;
-    min-width: 0 !important;
-    overflow: visible !important;
-}
-.st-key-btn_today button > *,
-.st-key-btn_od_today button > * {
-    visibility: hidden;
-}
-.st-key-btn_today button::after,
-.st-key-btn_od_today button::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 1.1rem;
-    height: 1.1rem;
-    transform: translate(-50%, -50%);
-    background-color: currentColor;
-    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'><path d='M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z'/></svg>") center / contain no-repeat;
-    mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'><path d='M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z'/></svg>") center / contain no-repeat;
-    pointer-events: none;
-}
-
 /* Calendar picker: hide the date text and show only an icon.
    Targets the whole widget, so it works whichever inner elements
    (input box or day / month / year segments) Streamlit renders. */
@@ -125,6 +138,7 @@ LAYOUT_CSS = """
     caret-color: transparent !important;
     cursor: pointer;
 }
+
 /* No coloured band: clear the highlight on the date text and its parts. */
 .st-key-en_picker [data-testid="stDateInput"] *,
 .st-key-en_picker [data-testid="stDateInput"] *::selection {
@@ -153,9 +167,9 @@ LAYOUT_CSS = """
     height: 1.1rem;
     transform: translate(-50%, -50%);
     background-color: currentColor;
-    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'><path d='M200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v560q0 33-23.5 56.5T760-80H200Zm0-80h560v-400H200v400Zm0-480h560v-80H200v80Zm0 0v-80 80Zm280 240q-17 0-28.5-11.5T440-440q0-17 11.5-28.5T480-480q17 0 28.5 11.5T520-440q0 17-11.5 28.5T480-400Zm-160 0q-17 0-28.5-11.5T280-440q0-17 11.5-28.5T320-480q17 0 28.5 11.5T360-440q0 17-11.5 28.5T320-400Zm320 0q-17 0-28.5-11.5T600-440q0-17 11.5-28.5T640-480q17 0 28.5 11.5T680-440q0 17-11.5 28.5T640-400ZM480-240q-17 0-28.5-11.5T440-280q0-17 11.5-28.5T480-320q17 0 28.5 11.5T520-280q0 17-11.5 28.5T480-240Zm-160 0q-17 0-28.5-11.5T280-280q0-17 11.5-28.5T320-320q17 0 28.5 11.5T360-280q0 17-11.5 28.5T320-240Zm320 0q-17 0-28.5-11.5T600-280q0-17 11.5-28.5T640-320q17 0 28.5 11.5T680-280q0 17-11.5 28.5T640-240Z'/></svg>") center / contain no-repeat;
-    mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'><path d='M200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v560q0 33-23.5 56.5T760-80H200Zm0-80h560v-400H200v400Zm0-480h560v-80H200v80Zm0 0v-80 80Zm280 240q-17 0-28.5-11.5T440-440q0-17 11.5-28.5T480-480q17 0 28.5 11.5T520-440q0 17-11.5 28.5T480-400Zm-160 0q-17 0-28.5-11.5T280-440q0-17 11.5-28.5T320-480q17 0 28.5 11.5T360-440q0 17-11.5 28.5T320-400Zm320 0q-17 0-28.5-11.5T600-440q0-17 11.5-28.5T640-480q17 0 28.5 11.5T680-440q0 17-11.5 28.5T640-400ZM480-240q-17 0-28.5-11.5T440-280q0-17 11.5-28.5T480-320q17 0 28.5 11.5T520-280q0 17-11.5 28.5T480-240Zm-160 0q-17 0-28.5-11.5T280-280q0-17 11.5-28.5T320-320q17 0 28.5 11.5T360-280q0 17-11.5 28.5T320-240Zm320 0q-17 0-28.5-11.5T600-280q0-17 11.5-28.5T640-320q17 0 28.5 11.5T680-280q0 17-11.5 28.5T640-240Z'/></svg>") center / contain no-repeat;
+    -webkit-mask: CAL_SVG center / contain no-repeat;
+    mask: CAL_SVG center / contain no-repeat;
     pointer-events: none;
 }
 </style>
-"""
+""".replace("ICON_W", ICON_COL_WIDTH).replace("CAL_SVG", _CALENDAR_SVG)
