@@ -1,0 +1,2 @@
+streamlit>=1.53
+odia-panji>=0.3.2
