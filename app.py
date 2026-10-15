@@ -8,14 +8,13 @@ Run locally:
 from __future__ import annotations
 
 import calendar
-from datetime import date, datetime, timedelta, timezone
+import json
+from datetime import date, datetime
 from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 
 import streamlit as st
 
 from odia_panji import (
-    GAJAPATI_REIGNS,
-    HistoricalStyle,
     OdiaCalendarError,
     __version__,
     convert,
@@ -36,73 +35,22 @@ from odia_panji.constants import (
     TITHI_NAMES,
 )
 
-# ---- Constants ------------------------------------------------------------
-IST = timezone(timedelta(hours=5, minutes=30), name="IST")
-
-# Dates the library is trusted for (see the README's "Limitations").
-MIN_DATE: date = date(1800, 1, 1)
-MAX_DATE: date = date(2100, 12, 31)
-EARLIEST_ANKA_DATE: date = GAJAPATI_REIGNS[0].accession
-
-# Derived from the library: Utkalabda changes mid-year, so "year - 592" is
-# off by one for part of every year.
-MIN_UTKALABDA: int = utkalabda_year(MIN_DATE)
-MAX_UTKALABDA: int = utkalabda_year(MAX_DATE)
-
-REIGN_NAMES: List[str] = [
-    reign.name for reign in reversed(GAJAPATI_REIGNS)
-]  # current first
-MONTH_ABBR: List[str] = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
-YEARS: List[int] = list(range(MIN_DATE.year, MAX_DATE.year + 1))
-PAKSHAS: List[str] = ["Shukla", "Krushna"]
-
-STYLES: Dict[str, HistoricalStyle] = {
-    "Full": "full",
-    "Compact (one line)": "compact",
-    "Lunar first": "lunar",
-    "Solar first": "solar",
-}
-
-LAYOUT_CSS = """
-<style>
-.st-key-en_date_row [data-testid="stHorizontalBlock"],
-[class*="st-key-metrics_"] [data-testid="stHorizontalBlock"] {
-    flex-wrap: nowrap !important;
-    gap: 0.5rem !important;
-}
-.st-key-en_date_row [data-testid="stColumn"],
-.st-key-en_date_row [data-testid="column"],
-[class*="st-key-metrics_"] [data-testid="stColumn"],
-[class*="st-key-metrics_"] [data-testid="column"] {
-    min-width: 0 !important;
-}
-
-/* Make every wrapper inside a metric column respect the column width,
-   so long text wraps instead of spilling into the next column. */
-[class*="st-key-metrics_"] [data-testid="stColumn"] > *,
-[class*="st-key-metrics_"] [data-testid="stColumn"] [data-testid="stElementContainer"],
-[class*="st-key-metrics_"] [data-testid="stMetric"] {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-}
-
-[class*="st-key-metrics_"] [data-testid="stMetricValue"] {
-    font-size: 1.4rem !important;
-}
-
-/* Let a long Gajapati name wrap (applies to the value and all its children). */
-[class*="st-key-metrics_"] [data-testid="stMetricValue"],
-[class*="st-key-metrics_"] [data-testid="stMetricValue"] * {
-    white-space: normal !important;
-    overflow: visible !important;
-    text-overflow: clip !important;
-    overflow-wrap: anywhere !important;
-    word-break: normal;
-    line-height: 1.2;
-}
-</style>
-"""
+from app_constants import (
+    EARLIEST_ANKA_DATE,
+    IST,
+    JATAKA_STYLE,
+    JATAKA_TITLES,
+    LAYOUT_CSS,
+    MAX_DATE,
+    MAX_UTKALABDA,
+    MIN_DATE,
+    MIN_UTKALABDA,
+    MONTH_ABBR,
+    PAKSHAS,
+    REIGN_NAMES,
+    STYLES,
+    YEARS,
+)
 
 T = TypeVar("T")
 
@@ -159,6 +107,17 @@ def index_of(options: List[str], value: Any, fallback: int = 0) -> int:
 def month_label(month: int) -> str:
     """Selectbox label for a month number, e.g. 10 -> ``"Oct"``."""
     return MONTH_ABBR[month - 1]
+
+
+def jataka_citation(day: date, result: Dict[str, Any]) -> str:
+    """Traditional Jataka-style citation built from a full conversion result."""
+    return (
+        f"{JATAKA_TITLES}, Shree Shree 108 Shree {result['gajapati']} "
+        f"Maharajanka Vijaye Shubha Rajya Bardhane a A{result['anka']}nka "
+        f"Ingraji Ta - {day:%d/%m/%Y} rikha "
+        f"Sauramana {result['solar_month']} Masa Di{result['solar_day']}na, "
+        f"Chandriyamana {lunar_text(result)} {result['bara']}"
+    )
 
 
 # ---- Cached library calls (the astronomy is computed) ---------------------
@@ -269,14 +228,18 @@ def render_details(
 
         style_label = required(
             st.radio(
-                "Citation style", list(STYLES), horizontal=True, key=f"style_{key}"
+                "Citation style",
+                list(STYLES) + [JATAKA_STYLE],
+                horizontal=True,
+                key=f"style_{key}",
             )
         )
-        st.code(
-            format_historical(day, style=STYLES[style_label]),
-            language=None,
-            wrap_lines=True,
+        citation: str = (
+            jataka_citation(day, result)
+            if style_label == JATAKA_STYLE
+            else format_historical(day, style=STYLES[style_label])
         )
+        st.code(citation, language=None, wrap_lines=True)
     else:
         st.info(
             f"Anka years are available from {EARLIEST_ANKA_DATE:%d-%m-%Y} "
@@ -284,7 +247,10 @@ def render_details(
         )
 
     with st.expander("All details"):
-        st.json(result)
+        st.code(
+            json.dumps(result, indent=4, ensure_ascii=False, default=str),
+            language="json",
+        )
 
 
 def show_odia_details(day: date, odia_digits: bool, key: str) -> None:
@@ -302,8 +268,39 @@ def set_en_date(day: date) -> None:
 
 
 def set_en_date_today() -> None:
-    """Callback for the "Today" button."""
+    """Callback for the "Today" (refresh) button."""
     set_en_date(today_ist())
+
+
+def set_en_date_from_picker() -> None:
+    """Callback for the calendar picker: copy its date into the selectboxes."""
+    set_en_date(st.session_state["en_picker"])
+
+
+# ---- Odia -> English form state -------------------------------------------
+# Input keys on the Odia -> English tab that hold a date value. The
+# "Year given as" / "Date given as" choices are kept on purpose.
+OD_INPUT_KEYS: List[str] = [
+    "od_utkalabda",
+    "od_anka",
+    "od_gajapati",
+    "od_rashi",
+    "od_solar_day",
+    "od_lunar_month",
+    "lunar_paksha",
+    "lunar_tithi",
+    "od_adhika",
+]
+
+
+def reset_od_to_today() -> None:
+    """Callback for the Odia tab's refresh button: refill inputs with today.
+
+    Deleting the keys makes each input start again from its default value,
+    which is today's Odia date (IST).
+    """
+    for input_key in OD_INPUT_KEYS:
+        st.session_state.pop(input_key, None)
 
 
 # ---- Page -----------------------------------------------------------------
@@ -328,8 +325,8 @@ with english_tab:
 
     st.markdown("**English (Gregorian) Date**")
     with st.container(key="en_date_row"):
-        col_day, col_month, col_year, col_today = st.columns(
-            [1.1, 1.4, 1.5, 1.4], vertical_alignment="bottom"
+        col_day, col_month, col_year, col_today, col_pick = st.columns(
+            [1.1, 1.4, 1.5, 0.55, 0.55], vertical_alignment="bottom"
         )
         # Clamp the day when month/year change (e.g. 31 Jan -> Feb).
         days_in_month: int = calendar.monthrange(
@@ -337,6 +334,13 @@ with english_tab:
         )[1]
         if st.session_state["en_day"] > days_in_month:
             st.session_state["en_day"] = days_in_month
+
+        # Keep the calendar in sync with the selectboxes (set before it's drawn).
+        st.session_state["en_picker"] = date(
+            st.session_state["en_year"],
+            st.session_state["en_month"],
+            st.session_state["en_day"],
+        )
 
         col_day.selectbox("Day", list(range(1, days_in_month + 1)), key="en_day")
         col_month.selectbox(
@@ -347,7 +351,21 @@ with english_tab:
         )
         col_year.selectbox("Year", YEARS, key="en_year")
         col_today.button(
-            "Today", on_click=set_en_date_today, key="btn_today", width="stretch"
+            ":material/refresh:",
+            on_click=set_en_date_today,
+            key="btn_today",
+            help="Today",
+            width="stretch",
+        )
+        col_pick.date_input(
+            "Pick a date",
+            min_value=MIN_DATE,
+            max_value=MAX_DATE,
+            format="DD/MM/YYYY",
+            key="en_picker",
+            on_change=set_en_date_from_picker,
+            label_visibility="collapsed",
+            help="Pick a date",
         )
 
     picked: date = date(
@@ -372,12 +390,21 @@ with english_tab:
 with odia_tab:
     defaults = today_defaults()
 
-    col_year_type, col_date_type = st.columns(2)
+    col_year_type, col_date_type, col_od_today = st.columns(
+        [2, 2, 0.55], vertical_alignment="bottom"
+    )
     year_type = col_year_type.radio(
         "Year given as", ["Utkalabda", "Anka"], horizontal=True
     )
     date_type = col_date_type.radio(
         "Date given as", ["Solar", "Lunar"], horizontal=True
+    )
+    col_od_today.button(
+        ":material/refresh:",
+        on_click=reset_od_to_today,
+        key="btn_od_today",
+        help="Today",
+        width="stretch",
     )
 
     utkalabda: Optional[int] = None
@@ -393,16 +420,21 @@ with odia_tab:
                 max_value=MAX_UTKALABDA,
                 value=min(max(defaults["utkalabda"], MIN_UTKALABDA), MAX_UTKALABDA),
                 step=1,
+                key="od_utkalabda",
             )
         )
     else:
         col_anka, col_king = st.columns([1, 2])
         anka = int(
             col_anka.number_input(
-                "Anka", min_value=2, value=defaults.get("anka", 2), step=1
+                "Anka",
+                min_value=2,
+                value=defaults.get("anka", 2),
+                step=1,
+                key="od_anka",
             )
         )
-        gajapati = col_king.selectbox("Gajapati", REIGN_NAMES)
+        gajapati = col_king.selectbox("Gajapati", REIGN_NAMES, key="od_gajapati")
         if not is_valid_anka(anka):
             ready = False
             st.warning(
@@ -423,11 +455,17 @@ with odia_tab:
                 "Solar month (rashi)",
                 RASHI,
                 index=index_of(RASHI, defaults["solar_month"]),
+                key="od_rashi",
             )
         )
         solar_day = int(
             col_solar_day.number_input(
-                "Day", min_value=1, max_value=32, value=defaults["solar_day"], step=1
+                "Day",
+                min_value=1,
+                max_value=32,
+                value=defaults["solar_day"],
+                step=1,
+                key="od_solar_day",
             )
         )
     else:
@@ -436,6 +474,7 @@ with odia_tab:
                 "Lunar month",
                 LUNAR_MONTHS,
                 index=index_of(LUNAR_MONTHS, defaults["lunar_month"]),
+                key="od_lunar_month",
             )
         )
         col_paksha, col_tithi = st.columns(2)
@@ -464,6 +503,7 @@ with odia_tab:
             "Adhika (intercalary) month",
             value=defaults["adhika"],
             help="Starts ticked only if today falls in an adhika month.",
+            key="od_adhika",
         )
 
     st.divider()
