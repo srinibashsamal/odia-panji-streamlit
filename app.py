@@ -76,15 +76,29 @@ LAYOUT_CSS = """
 [class*="st-key-metrics_"] [data-testid="column"] {
     min-width: 0 !important;
 }
+
+/* Make every wrapper inside a metric column respect the column width,
+   so long text wraps instead of spilling into the next column. */
+[class*="st-key-metrics_"] [data-testid="stColumn"] > *,
+[class*="st-key-metrics_"] [data-testid="stColumn"] [data-testid="stElementContainer"],
+[class*="st-key-metrics_"] [data-testid="stMetric"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+}
+
 [class*="st-key-metrics_"] [data-testid="stMetricValue"] {
     font-size: 1.4rem !important;
 }
-/* Let a long Gajapati name wrap instead of being cut off with "...". */
-[class*="st-key-metrics_"] [data-testid="stMetricValue"] div {
+
+/* Let a long Gajapati name wrap (applies to the value and all its children). */
+[class*="st-key-metrics_"] [data-testid="stMetricValue"],
+[class*="st-key-metrics_"] [data-testid="stMetricValue"] * {
     white-space: normal !important;
     overflow: visible !important;
     text-overflow: clip !important;
-    overflow-wrap: anywhere;
+    overflow-wrap: anywhere !important;
+    word-break: normal;
     line-height: 1.2;
 }
 </style>
