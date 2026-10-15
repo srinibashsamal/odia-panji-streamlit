@@ -83,6 +83,34 @@ LAYOUT_CSS = """
     line-height: 1.2;
 }
 
+/* Refresh buttons: hide the font-icon (it gets clipped in narrow columns)
+   and draw the icon with a mask, like the calendar button. */
+.st-key-btn_today button,
+.st-key-btn_od_today button {
+    position: relative;
+    padding: 0 !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+}
+.st-key-btn_today button > *,
+.st-key-btn_od_today button > * {
+    visibility: hidden;
+}
+.st-key-btn_today button::after,
+.st-key-btn_od_today button::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1.1rem;
+    height: 1.1rem;
+    transform: translate(-50%, -50%);
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'><path d='M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z'/></svg>") center / contain no-repeat;
+    mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'><path d='M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z'/></svg>") center / contain no-repeat;
+    pointer-events: none;
+}
+
 /* Calendar picker: hide the date text and show only an icon.
    Targets the whole widget, so it works whichever inner elements
    (input box or day / month / year segments) Streamlit renders. */
