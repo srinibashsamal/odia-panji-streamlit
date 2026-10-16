@@ -248,7 +248,12 @@ def render_details(
 
     with st.expander("All details"):
         st.code(
-            json.dumps(result, indent=4, ensure_ascii=False, default=str),
+            json.dumps(
+                result,
+                indent=4,
+                ensure_ascii=False,
+                default=str,  # sort_keys=True
+            ),
             language="json",
         )
 
@@ -278,29 +283,46 @@ def set_en_date_from_picker() -> None:
 
 
 # ---- Odia -> English form state -------------------------------------------
-# Input keys on the Odia -> English tab that hold a date value. The
-# "Year given as" / "Date given as" choices are kept on purpose.
-OD_INPUT_KEYS: List[str] = [
-    "od_utkalabda",
-    "od_anka",
-    "od_gajapati",
-    "od_rashi",
-    "od_solar_day",
-    "od_lunar_month",
-    "lunar_paksha",
-    "lunar_tithi",
-    "od_adhika",
-]
+def od_today_values() -> Dict[str, Any]:
+    """Today's Odia date (IST) as values for the Odia -> English inputs."""
+    today = today_defaults()
+    paksha = today["paksha"] if today["paksha"] in PAKSHAS else PAKSHAS[0]
+    tithis = tithi_options(paksha)
+    return {
+        "od_utkalabda": min(max(today["utkalabda"], MIN_UTKALABDA), MAX_UTKALABDA),
+        "od_anka": today.get("anka", 2),
+        "od_gajapati": (
+            today["gajapati"]
+            if today.get("gajapati") in REIGN_NAMES
+            else REIGN_NAMES[0]
+        ),
+        "od_rashi": today["solar_month"] if today["solar_month"] in RASHI else RASHI[0],
+        "od_solar_day": today["solar_day"],
+        "od_lunar_month": (
+            today["lunar_month"]
+            if today["lunar_month"] in LUNAR_MONTHS
+            else LUNAR_MONTHS[0]
+        ),
+        "lunar_paksha": paksha,
+        "lunar_tithi": today["tithi"] if today["tithi"] in tithis else tithis[0],
+        "od_adhika": bool(today["adhika"]),
+    }
+
+
+def init_od_inputs() -> None:
+    """Give each Odia -> English input today's value the first time it appears."""
+    for input_key, value in od_today_values().items():
+        if input_key not in st.session_state:
+            st.session_state[input_key] = value
 
 
 def reset_od_to_today() -> None:
     """Callback for the Odia tab's refresh button: refill inputs with today.
 
-    Deleting the keys makes each input start again from its default value,
-    which is today's Odia date (IST).
+    Writing the values into session state (not deleting the keys) makes the
+    input fields on screen update as well as the result.
     """
-    for input_key in OD_INPUT_KEYS:
-        st.session_state.pop(input_key, None)
+    st.session_state.update(od_today_values())
 
 
 # ---- Page -----------------------------------------------------------------
@@ -389,7 +411,7 @@ with english_tab:
 
 # ---- Odia -> English
 with odia_tab:
-    defaults = today_defaults()
+    init_od_inputs()
 
     # Keyed container: LAYOUT_CSS keeps this row on one line on phones and
     # gives the refresh column a fixed width.
@@ -422,7 +444,6 @@ with odia_tab:
                 "Utkalabda year",
                 min_value=MIN_UTKALABDA,
                 max_value=MAX_UTKALABDA,
-                value=min(max(defaults["utkalabda"], MIN_UTKALABDA), MAX_UTKALABDA),
                 step=1,
                 key="od_utkalabda",
             )
@@ -433,7 +454,6 @@ with odia_tab:
             col_anka.number_input(
                 "Anka",
                 min_value=2,
-                value=defaults.get("anka", 2),
                 step=1,
                 key="od_anka",
             )
@@ -458,7 +478,6 @@ with odia_tab:
             col_rashi.selectbox(
                 "Solar month (rashi)",
                 RASHI,
-                index=index_of(RASHI, defaults["solar_month"]),
                 key="od_rashi",
             )
         )
@@ -467,7 +486,6 @@ with odia_tab:
                 "Day",
                 min_value=1,
                 max_value=32,
-                value=defaults["solar_day"],
                 step=1,
                 key="od_solar_day",
             )
@@ -477,7 +495,6 @@ with odia_tab:
             st.selectbox(
                 "Lunar month",
                 LUNAR_MONTHS,
-                index=index_of(LUNAR_MONTHS, defaults["lunar_month"]),
                 key="od_lunar_month",
             )
         )
@@ -486,7 +503,6 @@ with odia_tab:
             col_paksha.selectbox(
                 "Paksha",
                 PAKSHAS,
-                index=index_of(PAKSHAS, defaults["paksha"]),
                 key="lunar_paksha",
             )
         )
@@ -495,17 +511,12 @@ with odia_tab:
         # (Purnima <-> Amabasya), so map it across instead of resetting.
         options: List[str] = tithi_options(paksha)
         current: Optional[str] = st.session_state.get("lunar_tithi")
-        if current is None:
-            st.session_state["lunar_tithi"] = (
-                defaults["tithi"] if defaults["tithi"] in options else options[0]
-            )
-        elif current not in options:
+        if current not in options:
             st.session_state["lunar_tithi"] = options[-1]
 
         tithi = required(col_tithi.selectbox("Tithi", options, key="lunar_tithi"))
         adhika = st.checkbox(
             "Adhika (intercalary) month",
-            value=defaults["adhika"],
             help="Starts ticked only if today falls in an adhika month.",
             key="od_adhika",
         )
