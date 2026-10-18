@@ -112,10 +112,10 @@ def month_label(month: int) -> str:
 def jataka_citation(day: date, result: Dict[str, Any]) -> str:
     """Traditional Jataka-style citation built from a full conversion result."""
     return (
-        f"{JATAKA_TITLES}, Shree Shree 108 Shree {result['gajapati']} "
-        f"Maharajanka Vijaye Shubha Rajya Bardhane a A{result['anka']}nka "
-        f"Ingraji Ta - {day:%d/%m/%Y} rikha "
-        f"Sauramana {result['solar_month']} Masa Di{result['solar_day']}na, "
+        f"{JATAKA_TITLES} Shree Shree 108 Shree {result['gajapati']} "
+        f"Maharajanka Vijaye Shubha Rajya Bardhane A{result['anka']}nka "
+        f"Ingraji Ta- {day:%d/%m/%Y} rikha "
+        f"Sauramana {result['solar_month']} Masa Di{result['solar_day']}na "
         f"Chandriyamana {lunar_text(result)} {result['bara']}"
     )
 
