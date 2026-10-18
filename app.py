@@ -252,7 +252,7 @@ def render_details(
                 result,
                 indent=4,
                 ensure_ascii=False,
-                default=str,  # sort_keys=True
+                default=str,  # sort_keys=True,
             ),
             language="json",
         )
