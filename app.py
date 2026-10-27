@@ -99,11 +99,6 @@ def display_number(number: int, odia_digits: bool) -> Union[int, str]:
     return to_odia_numerals(number) if odia_digits else number
 
 
-def index_of(options: List[str], value: Any, fallback: int = 0) -> int:
-    """Position of ``value`` in ``options``, or ``fallback`` if absent."""
-    return options.index(value) if value in options else fallback
-
-
 def month_label(month: int) -> str:
     """Selectbox label for a month number, e.g. 10 -> ``"Oct"``."""
     return MONTH_ABBR[month - 1]
@@ -161,7 +156,12 @@ def cached_to_english(
     anka: Optional[int] = None,
     gajapati: Optional[str] = None,
 ) -> date:
-    """Odia -> English conversion; see :func:`odia_panji.to_english`."""
+    """Odia -> English conversion.
+
+    The cache key is the full argument tuple. **If ``odia_panji.to_english``
+    ever gains a parameter, this wrapper must be updated to forward it** or
+    cached results will silently go stale.
+    """
     return to_english(
         month,
         day,
@@ -308,6 +308,9 @@ def od_today_values() -> Dict[str, Any]:
         "lunar_paksha": paksha,
         "lunar_tithi": today["tithi"] if today["tithi"] in tithis else tithis[0],
         "od_adhika": bool(today["adhika"]),
+        # Also reset the two radio groups.
+        "od_year_type": "Utkalabda",
+        "od_date_type": "Solar",
     }
 
 
@@ -322,7 +325,8 @@ def reset_od_to_today() -> None:
     """Callback for the Odia tab's refresh button: refill inputs with today.
 
     Writing the values into session state (not deleting the keys) makes the
-    input fields on screen update as well as the result.
+    input fields on screen update as well as the result. The two radios are
+    included so a refresh fully resets the form.
     """
     st.session_state.update(od_today_values())
 
@@ -337,6 +341,9 @@ st.caption(
     "Utkalabda, Anka, tithi, solar month, Shakabda and bara."
 )
 
+# Single shared preference, applied to both tabs.
+odia_digits: bool = st.toggle("Show years in Odia digits (୧୪୩୪)", key="digits_shared")
+
 english_tab, odia_tab, about_tab = st.tabs(
     ["English → Odia", "Odia → English", "About"]
 )
@@ -345,7 +352,8 @@ english_tab, odia_tab, about_tab = st.tabs(
 with english_tab:
     # Initialise once, from a shared link (?date=YYYY-MM-DD) or today.
     if "en_year" not in st.session_state:
-        set_en_date(parse_date_param(st.query_params.get("date")) or today_ist())
+        initial = parse_date_param(st.query_params.get("date")) or today_ist()
+        set_en_date(initial)
 
     st.markdown("**English (Gregorian) Date**")
     with st.container(key="en_date_row"):
@@ -358,6 +366,8 @@ with english_tab:
             st.session_state["en_year"], st.session_state["en_month"]
         )[1]
         if st.session_state["en_day"] > days_in_month:
+            # Let the user know their day was adjusted (was silent before).
+            st.session_state["_clamped_from"] = st.session_state["en_day"]
             st.session_state["en_day"] = days_in_month
 
         # Keep the calendar in sync with the selectboxes (set before it's drawn).
@@ -393,6 +403,14 @@ with english_tab:
             help="Pick a date",
         )
 
+    if "_clamped_from" in st.session_state:
+        st.toast(
+            f"Day adjusted from {st.session_state.pop('_clamped_from')} "
+            f"to {st.session_state['en_day']} "
+            f"({month_label(st.session_state['en_month'])} has "
+            f"{days_in_month} days)."
+        )
+
     picked: date = date(
         st.session_state["en_year"],
         st.session_state["en_month"],
@@ -402,9 +420,9 @@ with english_tab:
     # Writing a query param triggers a rerun, so only write when it changed.
     if st.query_params.get("date") != picked.isoformat():
         st.query_params["date"] = picked.isoformat()
+
     st.caption("The page link updates with the date, so you can copy it to share.")
 
-    odia_digits: bool = st.toggle("Show years in Odia digits (୧୪୩୪)", key="digits_en")
     try:
         with st.spinner("Calculating..."):
             show_odia_details(picked, odia_digits, key="en")
@@ -422,10 +440,16 @@ with odia_tab:
             [2, 2, 0.55], vertical_alignment="bottom"
         )
         year_type = col_year_type.radio(
-            "Year given as", ["Utkalabda", "Anka"], horizontal=True
+            "Year given as",
+            ["Utkalabda", "Anka"],
+            horizontal=True,
+            key="od_year_type",
         )
         date_type = col_date_type.radio(
-            "Date given as", ["Solar", "Lunar"], horizontal=True
+            "Date given as",
+            ["Solar", "Lunar"],
+            horizontal=True,
+            key="od_date_type",
         )
         col_od_today.button(
             ":material/refresh:",
@@ -538,10 +562,7 @@ with odia_tab:
                     gajapati=gajapati,
                 )
             st.success(f"**{result_date:%A, %d %B %Y}**")
-            odia_digits_rev: bool = st.toggle(
-                "Show years in Odia digits (୧୪୩୪)", key="digits_od"
-            )
-            show_odia_details(result_date, odia_digits_rev, key="od")
+            show_odia_details(result_date, odia_digits, key="od")
         except OdiaCalendarError as exc:
             st.error(str(exc))
 
