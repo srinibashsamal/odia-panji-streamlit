@@ -1,17 +1,16 @@
-name: Lint and Format
+name: Ruff Lint and Format
 
 on:
   push:
   pull_request:
   workflow_dispatch:
-    inputs:
-      fix:
-        description: "Auto-fix lint issues and format code, then commit"
-        type: boolean
-        default: false
 
 permissions:
   contents: write
+
+concurrency:
+  group: ruff-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ruff:
@@ -28,22 +27,29 @@ jobs:
       - name: Install Ruff
         run: pip install ruff
 
-      - name: Auto-fix and format
-        if: github.event_name == 'workflow_dispatch' && inputs.fix
-        run: |
-          ruff check . --fix
-          ruff format .
+      - name: Auto-fix lint issues
+        if: github.event_name != 'pull_request'
+        run: ruff check . --fix --exit-zero
 
-      - name: Commit fixes
-        if: github.event_name == 'workflow_dispatch' && inputs.fix
+      - name: Auto-format code
+        if: github.event_name != 'pull_request'
+        run: ruff format .
+
+      - name: Commit and push fixes
+        if: github.event_name != 'pull_request'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet || (git commit -m "style: apply ruff fixes and formatting" && git push)
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "style: apply ruff fixes and formatting"
+            git push
+          fi
 
-      - name: Lint with Ruff
+      - name: Lint check (remaining issues)
         run: ruff check .
 
-      - name: Check formatting with Ruff
+      - name: Format check
         run: ruff format --check .
