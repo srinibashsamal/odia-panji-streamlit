@@ -126,7 +126,7 @@ If it does not, open the local address displayed in the terminal.
 The `requirements.txt` file should contain:
 
 ```text
-streamlit>=1.53
+streamlit>=1.65.0
 odia-panji>=0.3.2
 ```
 
