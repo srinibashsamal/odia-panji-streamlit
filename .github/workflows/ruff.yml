@@ -1,0 +1,55 @@
+name: Ruff Lint and Format
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ruff-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Auto-fix lint issues
+        if: github.event_name != 'pull_request'
+        run: ruff check . --fix --exit-zero
+
+      - name: Auto-format code
+        if: github.event_name != 'pull_request'
+        run: ruff format .
+
+      - name: Commit and push fixes
+        if: github.event_name != 'pull_request'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "style: apply ruff fixes and formatting"
+            git push
+          fi
+
+      - name: Lint check (remaining issues)
+        run: ruff check .
+
+      - name: Format check
+        run: ruff format --check .
