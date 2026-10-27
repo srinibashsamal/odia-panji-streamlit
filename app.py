@@ -10,10 +10,9 @@ from __future__ import annotations
 import calendar
 import json
 from datetime import date, datetime
-from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import Any, TypeVar
 
 import streamlit as st
-
 from odia_panji import (
     OdiaCalendarError,
     __version__,
@@ -56,7 +55,7 @@ T = TypeVar("T")
 
 
 # ---- Pure helpers (no Streamlit calls) ------------------------------------
-def required(value: Optional[T]) -> T:
+def required(value: T | None) -> T:
     """Narrow an Optional widget value (None only when there are no options)."""
     if value is None:
         raise ValueError("A required input has no value.")
@@ -73,7 +72,7 @@ def today_ist() -> date:
     return clamp_date(datetime.now(IST).date())
 
 
-def parse_date_param(raw: Optional[str]) -> Optional[date]:
+def parse_date_param(raw: str | None) -> date | None:
     """Parse an ISO date from a query parameter; None if missing or invalid."""
     if not raw:
         return None
@@ -83,18 +82,18 @@ def parse_date_param(raw: Optional[str]) -> Optional[date]:
         return None
 
 
-def tithi_options(paksha: str) -> List[str]:
+def tithi_options(paksha: str) -> list[str]:
     """Tithis 1-14, then Purnima (Shukla) or Amabasya (Krushna)."""
     return TITHI_NAMES + (["Purnima"] if paksha == "Shukla" else ["Amabasya"])
 
 
-def lunar_text(result: Dict[str, Any]) -> str:
+def lunar_text(result: dict[str, Any]) -> str:
     """Lunar date as text, e.g. ``"Adhika Jyestha Shukla Dasami"``."""
     prefix = "Adhika " if result["adhika"] else ""
     return f"{prefix}{result['lunar_month']} {result['paksha']} {result['tithi']}"
 
 
-def display_number(number: int, odia_digits: bool) -> Union[int, str]:
+def display_number(number: int, odia_digits: bool) -> int | str:
     """Return ``number`` unchanged, or in Odia digits when requested."""
     return to_odia_numerals(number) if odia_digits else number
 
@@ -104,7 +103,7 @@ def month_label(month: int) -> str:
     return MONTH_ABBR[month - 1]
 
 
-def jataka_citation(day: date, result: Dict[str, Any]) -> str:
+def jataka_citation(day: date, result: dict[str, Any]) -> str:
     """Generate a traditional Jataka-style citation from conversion results."""
     return (
         f"{JATAKA_TITLES} Shree Shree 108 Shree {result['gajapati']} "
@@ -119,13 +118,13 @@ def jataka_citation(day: date, result: Dict[str, Any]) -> str:
 
 # ---- Cached library calls (the astronomy is computed) ---------------------
 @st.cache_data(show_spinner=False)
-def cached_convert(day: date) -> Dict[str, Any]:
+def cached_convert(day: date) -> dict[str, Any]:
     """Full English -> Odia conversion, including the Anka."""
     return dict(convert(day))
 
 
 @st.cache_data(show_spinner=False)
-def cached_basic(day: date) -> Dict[str, Any]:
+def cached_basic(day: date) -> dict[str, Any]:
     """Conversion without the Anka, for dates before the earliest reign."""
     lunar = lunar_date(day)
     solar = odia_solar_date(day)
@@ -148,13 +147,13 @@ def cached_basic(day: date) -> Dict[str, Any]:
 @st.cache_data(show_spinner=False)
 def cached_to_english(
     month: str,
-    day: Optional[int] = None,
-    paksha: Optional[str] = None,
-    tithi: Optional[str] = None,
+    day: int | None = None,
+    paksha: str | None = None,
+    tithi: str | None = None,
     adhika: bool = False,
-    utkalabda: Optional[int] = None,
-    anka: Optional[int] = None,
-    gajapati: Optional[str] = None,
+    utkalabda: int | None = None,
+    anka: int | None = None,
+    gajapati: str | None = None,
 ) -> date:
     """Odia -> English conversion.
 
@@ -175,21 +174,21 @@ def cached_to_english(
 
 
 # ---- Details view ---------------------------------------------------------
-def get_details(day: date) -> Tuple[Dict[str, Any], bool]:
+def get_details(day: date) -> tuple[dict[str, Any], bool]:
     """Return (conversion result, whether Anka data is available)."""
     has_anka = day >= EARLIEST_ANKA_DATE
     result = cached_convert(day) if has_anka else cached_basic(day)
     return result, has_anka
 
 
-def today_defaults() -> Dict[str, Any]:
+def today_defaults() -> dict[str, Any]:
     """Today's Odia date (IST), used to pre-fill the Odia -> English form."""
     result, _ = get_details(today_ist())
     return result
 
 
 def render_details(
-    day: date, result: Dict[str, Any], has_anka: bool, odia_digits: bool, key: str
+    day: date, result: dict[str, Any], has_anka: bool, odia_digits: bool, key: str
 ) -> None:
     """Render the details; ``key`` keeps widget keys unique across tabs."""
     # Four metrics on one row; the container key lets the CSS above stop
@@ -285,7 +284,7 @@ def set_en_date_from_picker() -> None:
 
 
 # ---- Odia -> English form state -------------------------------------------
-def od_today_values() -> Dict[str, Any]:
+def od_today_values() -> dict[str, Any]:
     """Today's Odia date (IST) as values for the Odia -> English inputs."""
     today = today_defaults()
     paksha = today["paksha"] if today["paksha"] in PAKSHAS else PAKSHAS[0]
@@ -459,9 +458,9 @@ with odia_tab:
             width="stretch",
         )
 
-    utkalabda: Optional[int] = None
-    anka: Optional[int] = None
-    gajapati: Optional[str] = None
+    utkalabda: int | None = None
+    anka: int | None = None
+    gajapati: str | None = None
     ready: bool = True
 
     if year_type == "Utkalabda":
@@ -493,9 +492,9 @@ with odia_tab:
             )
 
     month: str
-    solar_day: Optional[int] = None
-    paksha: Optional[str] = None
-    tithi: Optional[str] = None
+    solar_day: int | None = None
+    paksha: str | None = None
+    tithi: str | None = None
     adhika: bool = False
 
     if date_type == "Solar":
@@ -535,8 +534,8 @@ with odia_tab:
 
         # Keep the tithi when the paksha changes: only the 15th entry differs
         # (Purnima <-> Amabasya), so map it across instead of resetting.
-        options: List[str] = tithi_options(paksha)
-        current: Optional[str] = st.session_state.get("lunar_tithi")
+        options: list[str] = tithi_options(paksha)
+        current: str | None = st.session_state.get("lunar_tithi")
         if current not in options:
             st.session_state["lunar_tithi"] = options[-1]
 

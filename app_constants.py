@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import date, timedelta, timezone
-from typing import Dict, List
 
 from odia_panji import GAJAPATI_REIGNS, HistoricalStyle, utkalabda_year
 
@@ -20,14 +19,14 @@ EARLIEST_ANKA_DATE: date = GAJAPATI_REIGNS[0].accession
 MIN_UTKALABDA: int = utkalabda_year(MIN_DATE)
 MAX_UTKALABDA: int = utkalabda_year(MAX_DATE)
 
-REIGN_NAMES: List[str] = [
+REIGN_NAMES: list[str] = [
     reign.name for reign in reversed(GAJAPATI_REIGNS)
 ]  # current first
-MONTH_ABBR: List[str] = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
-YEARS: List[int] = list(range(MIN_DATE.year, MAX_DATE.year + 1))
-PAKSHAS: List[str] = ["Shukla", "Krushna"]
+MONTH_ABBR: list[str] = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
+YEARS: list[int] = list(range(MIN_DATE.year, MAX_DATE.year + 1))
+PAKSHAS: list[str] = ["Shukla", "Krushna"]
 
-STYLES: Dict[str, HistoricalStyle] = {
+STYLES: dict[str, HistoricalStyle] = {
     "Full": "full",
     "Compact (one line)": "compact",
     "Lunar first": "lunar",
