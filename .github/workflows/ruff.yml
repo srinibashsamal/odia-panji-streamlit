@@ -2,6 +2,7 @@ name: Ruff Lint and Format
 
 on:
   push:
+    branches: ["**"]
   pull_request:
   workflow_dispatch:
 
@@ -25,7 +26,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install Ruff
-        run: pip install ruff
+        run: pip install ruff==0.17.3
 
       - name: Auto-fix lint issues
         if: github.event_name != 'pull_request'
