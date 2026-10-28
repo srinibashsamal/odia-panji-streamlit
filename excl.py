@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Program Name    : excl.py
@@ -16,7 +15,7 @@ Author          : Srinibash Samal
 import math
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any
 
 import pandas as pd
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -43,7 +42,7 @@ _DEFAULT_COL_WIDTH: float = 8.43
 # =====================================================================
 # SECTION 2: STYLE AND SIZING HELPERS
 # =====================================================================
-def _make_styles() -> Dict[str, Any]:
+def _make_styles() -> dict[str, Any]:
     """Build the reusable openpyxl style objects once, to share across all sheets."""
     thin = Side(style="thin")
 
@@ -91,7 +90,7 @@ def _apply_wrap_row_heights(
     ws,
     min_row: int,
     max_row: int,
-    wrap_cols: List[int],
+    wrap_cols: list[int],
     base_line_height: float = 15.0,
     min_height: float = 15.0,
     max_height: float = 240.0,
@@ -106,7 +105,7 @@ def _apply_wrap_row_heights(
         return
 
     # Cache the width of each wrapping column up front
-    col_widths: Dict[int, float] = {}
+    col_widths: dict[int, float] = {}
     for col_idx in wrap_cols:
         raw_width = ws.column_dimensions[get_column_letter(col_idx)].width
         col_widths[col_idx] = float(raw_width) if raw_width else _DEFAULT_COL_WIDTH
@@ -159,7 +158,7 @@ def _unique_table_name(workbook, desired: str) -> str:
 
     Table names must be unique across the entire workbook, not just per sheet.
     """
-    existing: Set[str] = set()
+    existing: set[str] = set()
     for worksheet in workbook.worksheets:
         existing.update(worksheet.tables.keys())
 
@@ -177,8 +176,8 @@ def _unique_table_name(workbook, desired: str) -> str:
 # SECTION 4: VALIDATORS
 # =====================================================================
 def _ensure_sheet_names(
-    dfs: List[pd.DataFrame], sheet_names: Optional[List[str]]
-) -> List[str]:
+    dfs: list[pd.DataFrame], sheet_names: list[str] | None
+) -> list[str]:
     """
     Ensure sheet_names list matches the number of DataFrames.
     Fills missing names with 'Sheet1', 'Sheet2', etc.
@@ -192,9 +191,9 @@ def _ensure_sheet_names(
 
 
 def _validate_highlight_cols(
-    dfs: List[pd.DataFrame],
-    highlight_cols_list: Optional[List[Optional[List[str]]]],
-) -> List[Optional[List[str]]]:
+    dfs: list[pd.DataFrame],
+    highlight_cols_list: list[list[str] | None] | None,
+) -> list[list[str] | None]:
     """Check the highlight list lines up with the DataFrames, one entry per sheet."""
     if highlight_cols_list is None:
         return [None] * len(dfs)
@@ -212,7 +211,7 @@ def _validate_highlight_cols(
 # SECTION 5: SHEET FORMATTING STEPS
 # =====================================================================
 def _write_empty_sheet(
-    ws, ncols: int, styles: Dict[str, Any], wrap_threshold: int
+    ws, ncols: int, styles: dict[str, Any], wrap_threshold: int
 ) -> None:
     """Write a friendly "no data" notice on a sheet that has headers but no rows."""
     # No columns at all: just drop the message in the first cell
@@ -245,17 +244,17 @@ def _write_empty_sheet(
 def _format_headers_and_widths(
     ws,
     df: pd.DataFrame,
-    styles: Dict[str, Any],
+    styles: dict[str, Any],
     wrap_threshold: int,
     filter_padding: float,
-) -> List[int]:
+) -> list[int]:
     """Style the header row, size every column, and wrap the wide ones.
 
     Returns:
         Indices of the columns that were set to wrap, so row heights can be
         estimated for them later.
     """
-    wrapped_col_indices: List[int] = []
+    wrapped_col_indices: list[int] = []
     nrows = len(df)
 
     for col_idx, header_cell in enumerate(ws[1], start=1):
@@ -282,7 +281,7 @@ def _format_headers_and_widths(
     return wrapped_col_indices
 
 
-def _apply_borders(ws, nrows: int, ncols: int, styles: Dict[str, Any]) -> None:
+def _apply_borders(ws, nrows: int, ncols: int, styles: dict[str, Any]) -> None:
     """Draw thin borders across the header row and all data rows."""
     for row in ws.iter_rows(min_row=1, max_row=nrows + 1, max_col=ncols):
         for cell in row:
@@ -290,7 +289,7 @@ def _apply_borders(ws, nrows: int, ncols: int, styles: Dict[str, Any]) -> None:
 
 
 def _highlight_columns(
-    ws, nrows: int, highlight_cols: Optional[List[str]], styles: Dict[str, Any]
+    ws, nrows: int, highlight_cols: list[str] | None, styles: dict[str, Any]
 ) -> None:
     """Give the data cells of the named columns the light-blue highlight fill."""
     highlight_set = set(highlight_cols or [])
@@ -340,10 +339,10 @@ def _add_table_or_filter(
 # SECTION 6: PUBLIC API
 # =====================================================================
 def save_formatted_excel(
-    dfs: List[pd.DataFrame],
-    output_path: Union[str, Path],
-    sheet_names: Optional[List[str]] = None,
-    highlight_cols_list: Optional[List[Optional[List[str]]]] = None,
+    dfs: list[pd.DataFrame],
+    output_path: str | Path,
+    sheet_names: list[str] | None = None,
+    highlight_cols_list: list[list[str] | None] | None = None,
     freeze_header: bool = False,
     wrap_threshold: int = 40,
     as_table: bool = False,
