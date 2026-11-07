@@ -2,6 +2,8 @@
 
 A simple, mobile-friendly Streamlit application for converting between **Gregorian dates** and the **traditional Odia calendar**. The app is powered by the [`odia-panji`](https://pypi.org/project/odia-panji/) Python library.
 
+The whole app is available in **English** and **Odia (ଓଡ଼ିଆ)**. Switch between them with a single toggle.
+
 <!-- Replace with a real screenshot when one is available. -->
 <!-- ![Screenshot](docs/screenshot.png) -->
 
@@ -20,7 +22,6 @@ Select a Gregorian date and view:
 - Odia solar month and day
 - Sunia and Odia year boundaries
 - Citation-style output for historical and archival use
-- Optional Odia numerals for Utkalabda, Anka and Shakabda (shared toggle across both tabs)
 
 ### Odia → English
 
@@ -32,6 +33,19 @@ Convert an Odia date to its corresponding Gregorian date using either:
 - Anka + lunar date
 
 The interface uses dropdowns for solar months, lunar months, paksha and tithi to reduce spelling and input errors.
+
+### Odia language mode
+
+Turn on the **ଓଡ଼ିଆ (Odia)** toggle below the title to show the entire app in Odia:
+
+- All labels, tabs, buttons, messages and the About section
+- Odia numerals (୦–୯) for dates, years, Anka and Shakabda
+- Odia names for months, rashi, paksha, tithi, bara and Gajapatis
+- All citation styles, including Jataka, in Odia
+
+The toggle applies to both tabs. Your selected date and form values stay the same when you switch languages.
+
+The **All details** section always shows the raw library output (English names and digits), so it can be copied and compared as-is.
 
 ### Additional UI features
 
@@ -75,6 +89,13 @@ A full historical citation can be shown as:
 ```text
 Wednesday, 14 October 2026 = 1434 Utkalabda, Anka 71 of Divyasingha Deva IV
 Budhabara, Aswina Shukla Chaturthi | 28 Kanya | Shakabda 1948
+```
+
+With the Odia toggle on, the same citation is shown as:
+
+```text
+ବୁଧବାର, ୧୪ ଅକ୍ଟୋବର ୨୦୨୬ = ୧୪୩୪ ଉତ୍କଳାବ୍ଦ, ଚତୁର୍ଥ ଦିବ୍ୟସିଂହ ଦେବଙ୍କ ୭୧ ଅଙ୍କ
+ବୁଧବାର, ଆଶ୍ୱିନ ଶୁକ୍ଳ ଚତୁର୍ଥୀ | କନ୍ୟା ୨୮ | ଶକାବ୍ଦ ୧୯୪୮
 ```
 
 ## Installation
@@ -137,26 +158,44 @@ bara details in conversion results and historical citations.
 
 ```text
 odia-panji-streamlit/
-├── app.py              # Streamlit application
-├── app_constants.py    # Dates, labels, citation styles and layout CSS
+├── app.py              # Page layout: language toggle, tabs and details view
+├── app_core.py         # Logic: language helpers, calculations, citations, form state
+├── app_constants.py    # Dates, option lists, session keys and layout CSS
+├── app_text_en.py      # English on-screen text
+├── app_text_od.py      # Odia on-screen text and Odia names for library terms
 ├── requirements.txt    # Runtime dependencies
 ├── README.md           # Project documentation
 └── LICENSE             # MIT licence
 ```
 
+### Adding or changing text
+
+All on-screen text lives in `app_text_en.py` and `app_text_od.py`. Both files
+must define the same `TEXT` keys; the app checks this at startup and stops
+with an error listing any missing keys.
+
+To translate a new library term (for example a new Gajapati), add it to the
+matching name dictionary in `app_text_od.py`. Terms without a translation
+fall back to their English name.
+
 ## Deploy on Streamlit Community Cloud
 
 1. Create a public GitHub repository for this application.
-2. Upload `app.py`, `app_constants.py`, `requirements.txt`, `README.md` and `LICENSE`.
+2. Upload `app.py`, `app_core.py`, `app_constants.py`, `app_text_en.py`,
+   `app_text_od.py`, `requirements.txt`, `README.md` and `LICENSE`.
 3. Sign in to [Streamlit Community Cloud](https://share.streamlit.io/) with GitHub.
 4. Create a new app and select the application repository.
 5. Set the main file path to `app.py`.
 6. Deploy the app.
 
 When the repository is updated, Streamlit Community Cloud normally rebuilds
-the app from the latest committed files. If a newly published `odia-panji`
-version is not picked up immediately, reboot the app or clear its cache from
-the app-management menu.
+the app from the latest committed files.
+
+- Upload all changed files in a **single commit**. If the files arrive in
+  separate commits, the app can briefly load a mix of old and new modules
+  and fail with an `ImportError`.
+- If an error persists after the files are correct, or a newly published
+  `odia-panji` version is not picked up, open **Manage app → ⋮ → Reboot app**.
 
 ## Share a selected date
 
@@ -183,6 +222,8 @@ This allows a visitor to copy the page URL and share a conversion for a specific
 - Nakshatra, Yoga, Karana, Muhurta and festival rules are not included.
 - Printed panjis can differ by a day near astronomical boundaries because of different constants, ayanamsa, sunrise definitions or locations.
 - Some reverse conversions can be ambiguous. In those cases, the application shows an error message instead of silently choosing a date.
+- In Odia mode, the number boxes (Utkalabda year, Anka and solar day) still show English digits, because Streamlit does not support other numerals there.
+- Error messages from the library are in English, so in Odia mode they appear inside an Odia sentence.
 
 ## Testing
 
