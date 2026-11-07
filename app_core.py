@@ -277,8 +277,7 @@ def odia_citation(day: date, result: ConversionResult, style: str) -> str:
 
     if style == "full":
         return (
-            f"{english} = {utkalabda}, {anka}\n"
-            f"{bara}, {lunar} | {solar} | {shakabda}"
+            f"{english} = {utkalabda}, {anka}\n{bara}, {lunar} | {solar} | {shakabda}"
         )
     if style == "compact":
         return " / ".join([english, utkalabda, anka, f"{bara}, {lunar}", solar])
