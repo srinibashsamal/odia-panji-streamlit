@@ -48,6 +48,7 @@ from app_core import (
     current_texts,
     get_details,
     init_od_inputs,
+    language_radio,
     long_month,
     lunar_text,
     month_label,
@@ -122,14 +123,12 @@ def render_detail_lines(result: ConversionResult, has_anka: bool) -> None:
 
 def render_citation_block(day: date, result: ConversionResult, key: str) -> None:
     """Citation-style radio + formatted citation text."""
-    style: str = required(
-        st.radio(
-            t("citation_style"),
-            [*STYLES, JATAKA_STYLE],
-            format_func=style_label,
-            horizontal=True,
-            key=f"{SessionKey.STYLE_PREFIX}{key}",
-        )
+    style = language_radio(
+        t("citation_style"),
+        [*STYLES, JATAKA_STYLE],
+        f"{SessionKey.STYLE_PREFIX}{key}",
+        format_func=style_label,
+        horizontal=True,
     )
     st.code(citation(day, result, style), language=None, wrap_lines=True)
 
@@ -269,20 +268,22 @@ with odia_tab:
         col_year_type, col_date_type, col_od_today = st.columns(
             OD_HEAD_COLS, vertical_alignment="bottom"
         )
-        year_type = col_year_type.radio(
-            t("year_given_as"),
-            YEAR_TYPES,
-            format_func=t,
-            horizontal=True,
-            key=SessionKey.OD_YEAR_TYPE,
-        )
-        date_type = col_date_type.radio(
-            t("date_given_as"),
-            DATE_TYPES,
-            format_func=t,
-            horizontal=True,
-            key=SessionKey.OD_DATE_TYPE,
-        )
+        with col_year_type:
+            year_type = language_radio(
+                t("year_given_as"),
+                YEAR_TYPES,
+                SessionKey.OD_YEAR_TYPE,
+                format_func=t,
+                horizontal=True,
+            )
+        with col_date_type:
+            date_type = language_radio(
+                t("date_given_as"),
+                DATE_TYPES,
+                SessionKey.OD_DATE_TYPE,
+                format_func=t,
+                horizontal=True,
+            )
         col_od_today.button(
             ":material/refresh:",
             on_click=reset_od_to_today,

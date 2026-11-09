@@ -174,6 +174,38 @@ def restore_selectbox_values() -> None:
                 break
 
 
+def language_radio(
+    label: str,
+    options: list[str],
+    store_key: str,
+    **kwargs: Any,
+) -> str:
+    """Radio whose selection survives a language switch.
+
+    Streamlit treats a radio as a new widget when its option labels change,
+    so the radio gets one key per language, and the chosen value is kept
+    under `store_key`, which reset callbacks can also set.
+    """
+    widget_key = f"{store_key}__{'od' if is_odia() else 'en'}"
+    current = st.session_state.get(store_key, options[0])
+    st.session_state[widget_key] = current if current in options else options[0]
+    return required(
+        st.radio(
+            label,
+            options,
+            key=widget_key,
+            on_change=_save_radio,
+            args=(store_key, widget_key),
+            **kwargs,
+        )
+    )
+
+
+def _save_radio(store_key: str, widget_key: str) -> None:
+    """Radio callback: copy the new choice into its language-free key."""
+    st.session_state[store_key] = st.session_state[widget_key]
+
+
 def assert_text_keys_match() -> None:
     """Fail fast if the English and Odia TEXT dicts don't have the same keys."""
     en_keys = set(app_text_en.TEXT)
